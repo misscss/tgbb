@@ -12,6 +12,11 @@ local Mouse = LocalPlayer:GetMouse()
 local Toggle = (Hotkey ~= "")
 local CurrentlyPressed = false
 local KeyConnection
+local WaitForKey = false
+
+local function GetKeyText(key)
+	return tostring(key):gsub("Enum.KeyCode.", "")
+end
 
 local function IsValidTarget(target)
 	if not target or not target.Parent then
@@ -40,6 +45,17 @@ local function BindHotkey()
 
 	KeyConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
 		if gameProcessed then
+			return
+		end
+
+		if WaitForKey then
+			if input.KeyCode ~= Enum.KeyCode.Unknown then
+				Hotkey = input.KeyCode.Name:lower()
+				WaitForKey = false
+				if KeyLabel then
+					KeyLabel.Text = "Asignar tecla: " .. GetKeyText(input.KeyCode)
+				end
+			end
 			return
 		end
 
@@ -88,26 +104,39 @@ MainTab:Section({
 	Title = "Asignación",
 })
 
-MainTab:Button({
-	Title = "Asignar tecla",
+KeyLabel = MainTab:Button({
+	Title = "Asignar tecla: " .. GetKeyText(Enum.KeyCode.T),
 	Callback = function()
-		local conn
-		conn = UserInputService.InputBegan:Connect(function(input, gameProcessed)
-			if gameProcessed then
-				return
-			end
-
-			if input.KeyCode ~= Enum.KeyCode.Unknown then
-				Hotkey = input.KeyCode.Name:lower()
-				Toggle = (Hotkey ~= "")
-				BindHotkey()
-				conn:Disconnect()
-			end
-		end)
+		WaitForKey = true
+		KeyLabel.Text = "Press key..."
 	end
 })
 
+MainTab:Button({
+	Title = "Asignar tecla",
+	Callback = function()
+		WaitForKey = true
+		if KeyLabel then
+			KeyLabel.Text = "Press key..."
+		end
+	end
+})
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then
+		return
+	end
+
+	if input.KeyCode == Enum.KeyCode.RightControl then
+		Window:Toggle()
+	end
+end)
+
 RunService.RenderStepped:Connect(function()
+	if WaitForKey then
+		return
+	end
+
 	if Toggle and Mouse.Target and IsValidTarget(Mouse.Target) then
 		if HoldClick then
 			if not CurrentlyPressed then
